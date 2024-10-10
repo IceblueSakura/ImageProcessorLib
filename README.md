@@ -1,21 +1,51 @@
 # ImageProcessor Cpp
 一个C++编写的opencv支持库，主要测试的调用方式是P/Invoke(DLL)
 
-## 调用流程及参数设计
-1. [csharp]创建`ImageProcessorWarp`类，并绑定bitmap对象。
-2. [csharp]链式调用`ImageProcessorWarp`类中的方法，设计变换流程。
-3. [csharp]在`ImageProcessorWarp`类中使用队列记住每次变换的参数。
-4. [csharp]调用`ImageProcessorWarp`类中的Commit，在提交后才会进行处理(跨语言内存安全性需求)，这将(copy?)lockbits bitmap，并将锁定后的bitmap指针传递给cpp，构建`ImageProcessor`类。
-5. [csharp]按队列形式调用cpp中的方法，执行所有操作。
-6. [cpp]在初始化后，将指针区域的长度等用于校验的数据保存(防止内存越界)，并将RAM复制到VRAM。
-7. [cpp]之后的变换全部都在VRAM中运行，直到结束所有序列操作后，再将数据从VRAM复制回RAM。
-8. [cpp]根据初始化时保存的内存长度等校验信息，校验VRAM传回RAM的数据。
-9. [cpp]释放VRAM，但不要释放RAM(因为控制权即将转回csharp)。
-10. [csharp]Commit执行结束，unlockbits bitmap，将内存中修改应用到图像中。
+## 流程设计
+### 调用流程
+为了降低调用的资源消耗，以及方便扩充功能设计。
+1. [C#] 调用 C++ 的 `ImageProcessor::GetOptions` 获取一组功能的调用名、参数及支持的参数类型
+   - 此步骤通过获取所有可用的图像处理功能及其支持的参数列表，有助于动态构建C#端的调用接口。
+2. [C#] 根据上一步获得的功能名及参数列表，构建链式调用追加操作及参数类型校验的方法
+   - 根据获取到的功能和参数信息，在C#端构建相应的方法，以链式调用的方式记录每个图像处理操作和参数。
+3. [C#] 使用 `ImageProcessorWrapper::Commit` 确认链式操作附加的功能执行顺序后，构建执行的功能列表、参数值及参数类型，调用 `ImageProcessor::AddTransforms` 方法设定操作
+   - 在调用 `Commit` 方法时，C#端会将所有记录的操作转换成功能列表，并将对应的参数值及类型传递给C++端的 `AddTransforms` 方法，以设定具体的图像处理操作序列。
+4. [C++] 根据 C# 传递的功能执行顺序，执行图像变换
+   - C++端根据接收到的功能列表和参数，按照指定的顺序执行图像变换操作。
+
+### 处理流程
+1. [C#] 创建 `ImageProcessorWrapper` 类，并绑定 `Bitmap` 对象
+   - 初始化 `ImageProcessorWrapper` 实例，并加载图像资源，准备进行图像处理。
+2. [C#] 链式调用 `ImageProcessorWrapper` 类中的方法，设计变换流程
+   - 通过链式调用的方式设置图像处理的操作序列。
+3. [C#] 在 `ImageProcessorWrapper` 类中使用队列记住每次变换的参数
+   - 每次调用方法时，将操作及其参数记录到队列中，形成操作指令流。
+4. [C#] 调用 `ImageProcessorWrapper::Commit`，在提交后才会进行处理（跨语言内存安全性需求），这将锁定 `Bitmap`，并将锁定后的 `Bitmap` 指针传递给 C++，构建 `ImageProcessor` 类
+   - `ImageProcessorWrapper::Commit` 方法会锁定 `Bitmap` 对象，确保内存安全，然后将指针传递给 C++ 层，构建 `ImageProcessor` 实例。
+5. [C#] 按队列形式调用 C++ 中的方法，执行所有操作
+   - C# 端按顺序调用 C++ 中的方法，执行记录的每一个图像变换操作。
+6. [C++] 在初始化后，将指针区域的长度等用于校验的数据保存（防止内存越界），并将 RAM 复制到 VRAM
+   - 在 C++ 端初始化时，保存指针区域的信息以防止内存越界，将图像数据从 RAM 复制到 VRAM 中进行处理。
+7. [C++] 之后的变换全部都在 VRAM 中运行，直到结束所有序列操作后，再将数据从 VRAM 复制回 RAM
+   - 所有图像处理操作都在 VRAM 中完成，处理结束后将结果数据从 VRAM 复制回 RAM。
+8. [C++] 根据初始化时保存的内存长度等校验信息，校验 VRAM 传回 RAM 的数据
+   - 在将数据复制回 RAM 时，根据初始校验信息验证数据的完整性和正确性。
+9. [C++] 释放 VRAM，但不要释放 RAM（因为内存控制权即将转回C#）
+   - 释放 VRAM 资源，但保留 RAM 的控制权，以便 C# 端继续操作。
+10. [C#] `ImageProcessorWrapper::Commit` 执行结束，解除 `Bitmap` 的锁定，将内存中修改应用到图像中
+    - `Commit` 方法结束后，解除 `Bitmap` 锁定，将处理结果应用到图像中。
 11. 处理流程结束
+    - 图像处理流程结束，返回处理后的结果。
+
+## 需要的功能
+1. 图像XYWH座标的矩形切分
+2. 色调改变，如灰度
+3. 图像旋转
+4. 边缘平滑
+5. 加载第二张图像，并移动第一张图像覆盖到第二章张图像的特定位置
 
 ## 类结构设计
-- [csharp]因为需要以队列形式记录操作序列最终统一提交，所以设计链式调用的`ImageProcessorWarp`类。
+- [csharp]因为需要以队列形式记录操作序列最终统一提交，所以设计链式调用的`ImageProcessorWrapper`类。
 - [cpp]为了需要减少RAM/VRAM之间的数据复制，故尽可能所有操作都在一次复制后全部在VRAM中执行后再传递回RAM。为此，可能也需要链式调用。
 
 ## P/Invoke接口定义
@@ -25,7 +55,8 @@
 
 ### Cpp
 - Create()
-- 
+-
+
 
 ## Cpp操作类接口定义
 为了在Csharp中定义类似的功能结构，减少思维负担，所以尽可能在csharp中定义与cpp中结构类似的接口。
