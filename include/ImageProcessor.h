@@ -11,41 +11,65 @@
 #include <opencv2/opencv.hpp>
 
 class ImageProcessor {
+private:
+    cv::Mat hostImage;
+    cv::cuda::GpuMat deviceImage;
+    bool useGpu;
+
+    // 判断GPU是否可用
+    bool isGPUAvailable();
+    void Format24bppRgb();
+
 public:
-    // @param width: 11
     ImageProcessor(unsigned char *bitmapData, int width, int height, int stride);
 
-    // 图像处理操作，返回自身以支持链式调用
-    ImageProcessor &Translate(double offsetX, double offsetY);
 
-    ImageProcessor &Rotate(double angle);
-
-    ImageProcessor &Overlay(const cv::Mat &baseImage, const cv::Mat &overlayImage, int x, int y);
-
-    ImageProcessor &SmoothEdges(int radius);
-
-    ImageProcessor &Scale(double scaleX, double scaleY);
-
-    ImageProcessor &SetOpacity(double opacity);
-
-    ImageProcessor &Flip(bool horizontal, bool vertical);
-
-    ImageProcessor &Crop(int startX, int startY, int width, int height);
-
+    // 调整亮度与对比度
     ImageProcessor &AdjustBrightnessContrast(double brightness, double contrast);
 
-    ImageProcessor &SetRotationCenter(int centerX, int centerY);
+    // 设置透明度
+    ImageProcessor &SetOpacity(double opacity);
 
+    // 水平horizontal/垂直vertical翻转图像
+    ImageProcessor &Flip(bool horizontal, bool vertical);
+
+    // 透视变换
     ImageProcessor &PerspectiveTransform(const std::vector<cv::Point> &srcPoints,
                                          const std::vector<cv::Point> &dstPoints);
 
+    // 调整特定颜色的颜色，调整后的值为0~255(24bppRGB, 8bit)
     ImageProcessor &AdjustColor(int red, int green, int blue);
 
-    // 获取处理后的结果
-    cv::Mat GetResult() const;
+    // 按比例缩放
+    ImageProcessor &Scale(double scaleX, double scaleY);
 
-private:
-    cv::Mat image;
+    // 切割矩形
+    ImageProcessor &CropRectangle(int startX, int startY, int width, int height);
+
+    // 设置旋转中心，未设置时为几何中心
+    ImageProcessor &SetRotationCenter(int centerX, int centerY);
+
+    // 旋转特定角度
+    ImageProcessor &Rotate(double angle);
+
+    // 将overlayImage覆盖到baseImage的特定区域座标处
+    ImageProcessor &Overlay(const cv::Mat &baseImage, const cv::Mat &overlayImage, int x, int y);
+
+    // 图像平移，空白处使用0填充
+    ImageProcessor &Translate(double offsetX, double offsetY);
+
+    // 以特定像素值平滑边缘，用于切割操作后
+    ImageProcessor &SmoothEdges(int radius);
+
+    // 将内存中的图像复制到GPU中
+    ImageProcessor &CopyToGPU();
+
+    // 将GPU中的图像复制到内存中
+    ImageProcessor &CopyToHost();
+
+
+    // 获取当前结果
+    cv::Mat GetMat() const;
 };
 
 #endif //IMAGEPROCESSOR_H
