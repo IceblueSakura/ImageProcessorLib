@@ -53,3 +53,4 @@ _deps
 *.iml
 out
 gen
+cmake-build-debug
