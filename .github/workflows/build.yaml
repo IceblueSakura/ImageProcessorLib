@@ -49,16 +49,15 @@ jobs:
         shell: bash
         run: |
           echo "build-output-dir=${{ github.workspace }}/build" >> "$GITHUB_OUTPUT"
-      - name: Setup CUDA Toolkit
-        uses: Jimver/cuda-toolkit@master
+
+      - uses: Jimver/cuda-toolkit@master
         id: cuda-toolkit
         run: |
           echo "Installed cuda version is: ${{steps.cuda-toolkit.outputs.cuda}}" 
           echo "Cuda install location: ${{steps.cuda-toolkit.outputs.CUDA_PATH}}"
           nvcc -V
 
-      - name: Install OpenCV
-        uses: Dovyski/setup-opencv-action@v1.1
+      - uses: Dovyski/setup-opencv-action@v1.1
         with:
           opencv-version: '4.10.0'
 
