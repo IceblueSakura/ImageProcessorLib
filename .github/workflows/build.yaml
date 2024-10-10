@@ -60,6 +60,11 @@ jobs:
           -DCMAKE_BUILD_TYPE=${{ matrix.build_type }}
           -S ${{ github.workspace }}
 
+      - uses: Jimver/cuda-toolkit@master
+        id: cuda-toolkit
+        with:
+          log-file-suffix: '${{matrix.os}}.txt'
+
       - name: Install OpenCV
         uses: ./ # Uses an action in the root directory
         with:
