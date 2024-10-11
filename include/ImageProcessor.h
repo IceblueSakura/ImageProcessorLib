@@ -9,20 +9,39 @@
 #endif
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/cudawarping.hpp>
 
 class ImageProcessor {
 private:
     cv::Mat hostImage;
     cv::cuda::GpuMat deviceImage;
-    bool useGpu;
+    bool useGPU;
+
+    enum DeviceType {
+        CPU = 0,
+        GPU = 1
+    };
+
+    auto lastProcessed = DeviceType::CPU; // 0 = CPU,1=GPU,or impl enum marked task name.
 
     // 判断GPU是否可用
-    bool isGPUAvailable();
-    void Format24bppRgb();
+    static bool isGPUAvailable();
+
+    // 上载数据到GPU，并设置最后处理为GPU
+    void uploadToGPU();
+
+    // 下载数据回RAM，并设置最后处理为CPU
+    void downloadFromGPU();
+
+    // 从24bbp RGB图像加载数据，即MatType.CV_8UC3(uchar, 3 channel)
+    // 如果需要扩展图像类型就模仿这个方法再写一个对应的，并在构造函数补充
+    void format24bppRgb(unsigned char *bitmapData, int width, int height, int stride);
 
 public:
-    ImageProcessor(unsigned char *bitmapData, int width, int height, int stride);
-
+    // stride(step): 行步幅，在这意味着每row的内存偏移。因为内存对齐原因，所以不等于width*data-size
+    ImageProcessor(unsigned char *bitmapData,
+                   int width, int height, unsigned channel = 3, int stride,
+                   bool useGPU = true);
 
     // 调整亮度与对比度
     ImageProcessor &AdjustBrightnessContrast(double brightness, double contrast);
