@@ -9,7 +9,11 @@
 #endif
 
 #include <opencv2/opencv.hpp>
+#include <opencv2/imgproc.hpp>
+
+#include <opencv2/core/cuda.hpp>
 #include <opencv2/cudawarping.hpp>
+#include <opencv2/cudaimgproc.hpp>
 
 class ImageProcessor {
 private:
@@ -22,7 +26,7 @@ private:
         GPU = 1
     };
 
-    auto lastProcessed = DeviceType::CPU; // 0 = CPU,1=GPU,or impl enum marked task name.
+    DeviceType lastProcessed = DeviceType::CPU; // 0 = CPU,1=GPU,or impl enum marked task name.
 
     // 判断GPU是否可用
     static bool isGPUAvailable();
@@ -35,16 +39,17 @@ private:
 
     // 从24bbp RGB图像加载数据，即MatType.CV_8UC3(uchar, 3 channel)
     // 如果需要扩展图像类型就模仿这个方法再写一个对应的，并在构造函数补充
-    void format24bppRgb(unsigned char *bitmapData, int width, int height, int stride);
+    void format24bppRgb(unsigned char *bitmapData, int width, int height);
 
 public:
     // stride(step): 行步幅，在这意味着每row的内存偏移。因为内存对齐原因，所以不等于width*data-size
     ImageProcessor(unsigned char *bitmapData,
-                   int width, int height, unsigned channel = 3, int stride,
+                   int width, int height,
+                   unsigned char channel = 3,  // RGB
                    bool useGPU = true);
 
     // 调整亮度与对比度
-    ImageProcessor &AdjustBrightnessContrast(double brightness, double contrast);
+    ImageProcessor &AdjustBrightnessContrast(int brightness, double contrast);
 
     // 设置透明度
     ImageProcessor &SetOpacity(double opacity);
@@ -72,7 +77,7 @@ public:
     ImageProcessor &Rotate(double angle);
 
     // 将overlayImage覆盖到baseImage的特定区域座标处
-    ImageProcessor &Overlay(const cv::Mat &baseImage, const cv::Mat &overlayImage, int x, int y);
+    ImageProcessor &Overlay(cv::Mat &baseImage, cv::Mat &overlayImage, int x, int y);
 
     // 图像平移，空白处使用0填充
     ImageProcessor &Translate(double offsetX, double offsetY);
@@ -88,7 +93,7 @@ public:
 
 
     // 获取当前结果
-    cv::Mat GetMat() const;
+    cv::Mat GetMat();
 };
 
 #endif //IMAGEPROCESSOR_H
