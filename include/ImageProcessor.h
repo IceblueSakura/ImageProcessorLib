@@ -24,8 +24,8 @@ private:
     cv::Point2f rotationCenter = cv::Point2f(0, 0); // 旋转中心的默认值
 
     enum DeviceType {
-        CPU = 0,
-        GPU = 1
+        CPU,
+        GPU
     };
 
     DeviceType lastProcessed = DeviceType::CPU; // 0 = CPU,1=GPU,or impl enum marked task name.

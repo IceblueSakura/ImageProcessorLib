@@ -25,7 +25,7 @@ void ImageProcessor::downloadFromGPU() {
 
 // bitmap的stride应该在csharp端进行转换，所以在此默认内存已经是紧密的
 void ImageProcessor::format24bppRgb(unsigned char *bitmapData, const int width, const int height, const int channel) {
-    this->hostImage = cv::Mat(width, height, CV_8UC(channel), bitmapData).clone();
+    this->hostImage = cv::Mat(height, width, CV_8UC(channel), bitmapData).clone();
     // 深拷贝内存，之后不阻塞调用方取回bitmap控制权。这也是为了分辨率变换考虑
     this->lastProcessed = DeviceType::CPU; // 最后处理的设备是host
 }
