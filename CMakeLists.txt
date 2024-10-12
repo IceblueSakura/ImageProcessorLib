@@ -1,5 +1,5 @@
 # 设置项目名称和版本
-cmake_minimum_required(VERSION 3.28)
+cmake_minimum_required(VERSION 3.10)
 project(ImageProcessorLib VERSION 1.0 LANGUAGES CXX CUDA)
 
 # 设置CMake策略
