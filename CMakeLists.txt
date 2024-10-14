@@ -35,6 +35,7 @@ include_directories(
 set(SOURCES
         ${CMAKE_SOURCE_DIR}/src/ImageProcessor.cpp
         ${CMAKE_SOURCE_DIR}/src/ImageProcessorWrapper.cpp
+        include/ImageProcessorWrapper.h
 )
 
 # 将库编译为共享库 (DLL)

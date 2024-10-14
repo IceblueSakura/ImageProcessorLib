@@ -1,3 +1,4 @@
+#include "ImageProcessorWrapper.h"
 #include "ImageProcessor.h"
 
 // 使用extern "C"避免C++的名称修饰，使函数以C风格导出

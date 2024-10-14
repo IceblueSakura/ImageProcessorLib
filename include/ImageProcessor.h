@@ -1,12 +1,6 @@
 #ifndef IMAGEPROCESSOR_H
 #define IMAGEPROCESSOR_H
 
-// 在Windows下定义导出方式为DLL，在其他平台上不需要EXPORT关键字
-#ifdef _WIN32
-#define EXPORT __declspec(dllexport)
-#else
-#define EXPORT
-#endif
 
 #include <opencv2/opencv.hpp>
 #include <opencv2/imgproc.hpp>
